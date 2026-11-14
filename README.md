@@ -24,7 +24,7 @@ Editor-only Hackatime/WakaTime-compatible time tracking for Unity 2022.3 LTS and
    https://github.com/Blizz606/hackatime-unity.git
    ```
 
-Unity downloads the package and makes **Window → Hackatime** available. No files need to be copied into `Assets`.
+Unity downloads the package and opens its one-time setup screen. Paste your API key, click **Test Connection**, and tracking starts automatically. No files need to be copied into `Assets`.
 
 ### Install a specific version
 
@@ -38,7 +38,7 @@ To update later, open Package Manager, select **Hackatime for Unity**, and use t
 
 ## Setup
 
-Open **Window → Hackatime**, enter your personal API key, leave **Enable Tracking** on, and use **Test Connection**. The key is stored locally in Unity `EditorPrefs`; it is not stored in the project or committed to Git.
+After installation, the setup screen opens automatically. Enter your personal API key, leave **Enable Tracking** on, and use **Test Connection**. You can reopen it anytime through **Window → Hackatime**. The key is stored locally in Unity `EditorPrefs`; it is not stored in the project or committed to Git.
 
 ## Project naming
 

@@ -12,12 +12,14 @@ namespace Blizz606.UnityHackatime
         private const string ProjectOverrideKey = Prefix + "ProjectOverride";
         private const string EnabledKey = Prefix + "Enabled";
         private const string DebugKey = Prefix + "Debug";
+        private const string OnboardingSeenKey = Prefix + "OnboardingSeen";
 
         internal static string ApiKey { get { return EditorPrefs.GetString(ApiKeyKey, string.Empty); } set { EditorPrefs.SetString(ApiKeyKey, value ?? string.Empty); } }
         internal static string ApiUrl { get { return EditorPrefs.GetString(ApiUrlKey, DefaultApiUrl); } set { EditorPrefs.SetString(ApiUrlKey, value ?? DefaultApiUrl); } }
         internal static string ProjectOverride { get { return EditorPrefs.GetString(ProjectOverrideKey, string.Empty); } set { EditorPrefs.SetString(ProjectOverrideKey, value ?? string.Empty); } }
         internal static bool TrackingEnabled { get { return EditorPrefs.GetBool(EnabledKey, true); } set { EditorPrefs.SetBool(EnabledKey, value); } }
         internal static bool DebugLogging { get { return EditorPrefs.GetBool(DebugKey, false); } set { EditorPrefs.SetBool(DebugKey, value); } }
+        internal static bool OnboardingSeen { get { return EditorPrefs.GetBool(OnboardingSeenKey, false); } set { EditorPrefs.SetBool(OnboardingSeenKey, value); } }
 
         internal static string NormalizedApiUrl
         {

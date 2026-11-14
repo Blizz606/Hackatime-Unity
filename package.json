@@ -1,9 +1,12 @@
 {
   "name": "dev.blizz606.unity-hackatime",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "Hackatime for Unity",
-  "description": "Hackatime time tracking integration for the Unity Editor.",
+  "description": "Install-and-go Hackatime time tracking for the Unity Editor.",
   "unity": "2022.3",
+  "documentationUrl": "https://github.com/Blizz606/hackatime-unity#readme",
+  "changelogUrl": "https://github.com/Blizz606/hackatime-unity/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/Blizz606/hackatime-unity/blob/main/LICENSE",
   "author": { "name": "Blizz606" },
   "keywords": ["hackatime", "hackclub", "wakatime", "time-tracking", "unity"],
   "license": "MIT"

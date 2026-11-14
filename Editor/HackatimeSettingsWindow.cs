@@ -10,7 +10,7 @@ namespace Blizz606.UnityHackatime
         private bool enabled, debug;
 
         [MenuItem("Window/Hackatime")]
-        private static void Open() { GetWindow<HackatimeSettingsWindow>("Hackatime"); }
+        internal static void Open() { GetWindow<HackatimeSettingsWindow>("Hackatime"); }
 
         private void OnEnable() { Load(); }
         private void Load()
@@ -23,6 +23,12 @@ namespace Blizz606.UnityHackatime
         {
             EditorGUILayout.LabelField("Hackatime for Unity", EditorStyles.boldLabel);
             EditorGUILayout.Space(6);
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                EditorGUILayout.HelpBox("One quick step: paste your Hackatime API key below, then click Test Connection. Tracking starts automatically.", MessageType.Info);
+                if (GUILayout.Button("Open Hackatime to get an API key")) Application.OpenURL("https://hackatime.hackclub.com");
+                EditorGUILayout.Space(6);
+            }
             EditorGUILayout.LabelField("Status", status);
             EditorGUILayout.Space(4);
             EditorGUI.BeginChangeCheck();
@@ -46,6 +52,7 @@ namespace Blizz606.UnityHackatime
             HackatimeSettings.ApiUrl = apiUrl;
             HackatimeSettings.TrackingEnabled = enabled;
             HackatimeSettings.DebugLogging = debug;
+            if (!string.IsNullOrWhiteSpace(HackatimeSettings.ApiKey)) HackatimeSettings.OnboardingSeen = true;
             if (reinitialize) HackatimePlugin.Reinitialize();
             status = enabled && !string.IsNullOrWhiteSpace(apiKey) ? "Configured" : "Not configured";
             Repaint();

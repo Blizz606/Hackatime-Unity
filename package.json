@@ -1,6 +1,6 @@
 {
   "name": "dev.blizz606.unity-hackatime",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "displayName": "Hackatime for Unity",
   "description": "Install-and-go Hackatime time tracking for the Unity Editor.",
   "unity": "2022.3",

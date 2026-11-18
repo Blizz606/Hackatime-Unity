@@ -16,7 +16,7 @@ namespace Blizz606.UnityHackatime
             time = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0;
             project = HackatimeProject.ProjectName;
             branch = HackatimeProject.Branch;
-            plugin = "unity-hackatime/1.0.0";
+            plugin = "unity-hackatime/1.0.2";
             language = HackatimeLanguageDetector.FromPath(entity);
             editor = "Unity";
             operating_system = HackatimePlatform.Name;

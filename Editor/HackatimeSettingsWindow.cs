@@ -8,11 +8,13 @@ namespace Blizz606.UnityHackatime
         private string status = "Not configured";
         private string apiKey, apiUrl, projectOverride;
         private bool enabled, debug;
+        private bool showSettings = true;
 
         [MenuItem("Window/Hackatime")]
         internal static void Open() { GetWindow<HackatimeSettingsWindow>("Hackatime"); }
 
         private void OnEnable() { Load(); }
+        private void OnInspectorUpdate() { Repaint(); }
         private void Load()
         {
             apiKey = HackatimeSettings.ApiKey; apiUrl = HackatimeSettings.ApiUrl; projectOverride = HackatimeSettings.ProjectOverride;
@@ -29,6 +31,35 @@ namespace Blizz606.UnityHackatime
                 if (GUILayout.Button("Open Hackatime to get an API key")) Application.OpenURL("https://hackatime.hackclub.com");
                 EditorGUILayout.Space(6);
             }
+            DrawOverview();
+            EditorGUILayout.Space(8);
+            showSettings = EditorGUILayout.Foldout(showSettings, "Settings", true);
+            if (showSettings) DrawSettings();
+        }
+
+        private void DrawOverview()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("Tracking overview", EditorStyles.boldLabel);
+            DrawRow("Connection", HackatimeActivityTracker.ConnectionText);
+            DrawRow("Project", HackatimeProject.ProjectName);
+            DrawRow("Branch", string.IsNullOrEmpty(HackatimeProject.Branch) ? "Not detected" : HackatimeProject.Branch);
+            DrawRow("Active entity", HackatimeProject.ActiveEntity());
+            DrawRow("Last action", HackatimeActivityTracker.LastActionText);
+            DrawRow("Last heartbeat", HackatimeActivityTracker.LastHeartbeatText);
+            DrawRow("Heartbeat", HackatimeActivityTracker.HasQueuedHeartbeat ? "Queued or sending" : HackatimeActivityTracker.NextHeartbeatText);
+            DrawRow("Observed actions", HackatimeActivityTracker.ObservedActionCount.ToString());
+            DrawRow("Last error", HackatimeActivityTracker.LastErrorText);
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(6);
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Test Connection")) TestConnection();
+            if (GUILayout.Button("Open Dashboard")) Application.OpenURL("https://hackatime.hackclub.com");
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawSettings()
+        {
             EditorGUILayout.LabelField("Status", status);
             EditorGUILayout.Space(4);
             EditorGUI.BeginChangeCheck();
@@ -39,10 +70,15 @@ namespace Blizz606.UnityHackatime
             apiUrl = EditorGUILayout.TextField("API URL", apiUrl);
             if (EditorGUI.EndChangeCheck()) Save(true);
             EditorGUILayout.Space(8);
-            if (GUILayout.Button("Test Connection")) TestConnection();
-            EditorGUILayout.LabelField("Last Heartbeat", HackatimeActivityTracker.LastHeartbeatText);
-            EditorGUILayout.Space(8);
             EditorGUILayout.HelpBox("Only project-relative activity, project, branch, time, language, editor and normalized OS are sent. The API key is stored in Unity EditorPrefs and is never written to the project.", MessageType.Info);
+        }
+
+        private static void DrawRow(string label, string value)
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField(label, GUILayout.Width(112));
+            EditorGUILayout.SelectableLabel(value ?? string.Empty, EditorStyles.label, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+            EditorGUILayout.EndHorizontal();
         }
 
         private void Save(bool reinitialize)
@@ -63,7 +99,7 @@ namespace Blizz606.UnityHackatime
             Save(false);
             if (string.IsNullOrWhiteSpace(HackatimeSettings.ApiKey)) { status = "Not configured"; Repaint(); return; }
             status = "Testing…"; Repaint();
-            HackatimeClient.Instance.Send(new HackatimeHeartbeat(HackatimeProject.ActiveEntity(), false), (result, message) => { status = message; Repaint(); });
+            HackatimeClient.Instance.Send(new HackatimeHeartbeat(HackatimeProject.ActiveEntity(), false), (result, message) => { HackatimeActivityTracker.RecordConnectionStatus(result, message); status = message; Repaint(); });
         }
     }
 }

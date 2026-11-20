@@ -6,6 +6,7 @@ Editor-only Hackatime/WakaTime-compatible time tracking for Unity 2022.3 LTS and
 
 - Automatic heartbeats for scenes, saves, play mode and hierarchy activity.
 - Automatic activity detection for the Scene view, Hierarchy, Project window, selections, Inspector/Undo changes, saves and play mode.
+- Live in-editor overview of connection, active entity, last action, queued heartbeat and non-sensitive errors.
 - Hackatime-compatible 30-second throttling, queued activity heartbeats and `429 Retry-After` handling.
 - `.wakatime-project` project and branch overrides, then Git branch detection.
 - Project-relative entities such as `Assets/Scenes/Forest.unity`.

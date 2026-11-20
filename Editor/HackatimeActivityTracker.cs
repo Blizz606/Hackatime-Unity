@@ -14,11 +14,26 @@ namespace Blizz606.UnityHackatime
         private static double nextAllowed;
         private static string lastEntity;
         private static double lastSuccess;
+        private static string lastAction = "Waiting for activity";
+        private static double lastActionAt;
+        private static double lastDirectActionAt;
+        private static int observedActionCount;
+        private static string lastConnectionMessage = "API key is missing.";
+        private static string lastErrorMessage;
+        private static string lastConsoleMessage;
+        private static double lastConsoleMessageAt;
 
         internal static string LastHeartbeatText
         {
             get { return lastSuccess <= 0 ? "Never" : FormatAge(EditorTime.Now - lastSuccess); }
         }
+
+        internal static string LastActionText { get { return lastActionAt <= 0 ? lastAction : lastAction + " (" + FormatAge(EditorTime.Now - lastActionAt) + ")"; } }
+        internal static string ConnectionText { get { return lastConnectionMessage; } }
+        internal static string LastErrorText { get { return string.IsNullOrEmpty(lastErrorMessage) ? "None" : lastErrorMessage; } }
+        internal static int ObservedActionCount { get { return observedActionCount; } }
+        internal static bool HasQueuedHeartbeat { get { return queued || sending; } }
+        internal static string NextHeartbeatText { get { return nextAllowed <= EditorTime.Now ? "Ready" : "in " + FormatAge(nextAllowed - EditorTime.Now); } }
 
         internal static void Initialize()
         {
@@ -30,7 +45,40 @@ namespace Blizz606.UnityHackatime
 
         internal static void Shutdown() { Unregister(); initialized = false; }
 
-        internal static void Request(bool write)
+        internal static void RecordActivity(string action, bool write = false, bool isDirectUserAction = true)
+        {
+            if (!initialized || !HackatimeSettings.TrackingEnabled || string.IsNullOrWhiteSpace(HackatimeSettings.ApiKey)) return;
+            double now = EditorTime.Now;
+            // Hierarchy and Project GUI callbacks run once per visible item.
+            // Treat their repeated calls for the same input as one action.
+            if (action == lastAction && now - lastActionAt < 0.15) return;
+            lastAction = action;
+            lastActionAt = now;
+            if (isDirectUserAction) lastDirectActionAt = now;
+            observedActionCount++;
+            Request(write);
+        }
+
+        internal static void RecordConnectionStatus(HackatimeConnectionStatus status, string message)
+        {
+            lastConnectionMessage = message;
+            if (status == HackatimeConnectionStatus.Connected)
+            {
+                lastErrorMessage = null;
+                return;
+            }
+
+            if (status == HackatimeConnectionStatus.NotConfigured) return;
+            lastErrorMessage = message;
+            bool isRateLimit = status == HackatimeConnectionStatus.RateLimited;
+            if (message == lastConsoleMessage && EditorTime.Now - lastConsoleMessageAt < 300) return;
+            lastConsoleMessage = message;
+            lastConsoleMessageAt = EditorTime.Now;
+            if (isRateLimit) Debug.LogWarning("[Hackatime] " + message);
+            else Debug.LogError("[Hackatime] " + message);
+        }
+
+        private static void Request(bool write)
         {
             if (!initialized || !HackatimeSettings.TrackingEnabled || string.IsNullOrWhiteSpace(HackatimeSettings.ApiKey)) return;
             if (sending || EditorTime.Now < nextAllowed) { queued = true; queuedWrite |= write; return; }
@@ -55,6 +103,7 @@ namespace Blizz606.UnityHackatime
                     lastEntity = heartbeat.entity;
                     lastSuccess = EditorTime.Now;
                 }
+                RecordConnectionStatus(status, message);
                 if (HackatimeSettings.DebugLogging) Debug.Log("[Hackatime] " + message);
                 if (queued && EditorTime.Now >= nextAllowed) { bool save = queuedWrite; queued = queuedWrite = false; Request(save); }
             });
@@ -65,6 +114,7 @@ namespace Blizz606.UnityHackatime
             EditorApplication.update += OnUpdate;
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
+            EditorApplication.projectChanged += OnProjectChanged;
 #if UNITY_6000_0_OR_NEWER
             EditorApplication.hierarchyWindowItemByEntityIdOnGUI += OnHierarchyItemGui;
 #else
@@ -73,9 +123,11 @@ namespace Blizz606.UnityHackatime
             EditorApplication.projectWindowItemOnGUI += OnProjectItemGui;
             Selection.selectionChanged += OnSelectionChanged;
             Undo.postprocessModifications += OnPostprocessModifications;
+            Undo.undoRedoPerformed += OnUndoRedoPerformed;
             SceneView.duringSceneGui += OnSceneGui;
             EditorSceneManager.sceneSaved += OnSceneSaved;
             EditorSceneManager.sceneDirtied += OnSceneDirtied;
+            EditorSceneManager.activeSceneChangedInEditMode += OnActiveSceneChanged;
             EditorSceneManager.sceneOpened += OnSceneOpened;
             EditorSceneManager.sceneClosing += OnSceneClosing;
             EditorSceneManager.newSceneCreated += OnSceneCreated;
@@ -87,6 +139,7 @@ namespace Blizz606.UnityHackatime
             EditorApplication.update -= OnUpdate;
             EditorApplication.playModeStateChanged -= OnPlayModeChanged;
             EditorApplication.hierarchyChanged -= OnHierarchyChanged;
+            EditorApplication.projectChanged -= OnProjectChanged;
 #if UNITY_6000_0_OR_NEWER
             EditorApplication.hierarchyWindowItemByEntityIdOnGUI -= OnHierarchyItemGui;
 #else
@@ -95,9 +148,11 @@ namespace Blizz606.UnityHackatime
             EditorApplication.projectWindowItemOnGUI -= OnProjectItemGui;
             Selection.selectionChanged -= OnSelectionChanged;
             Undo.postprocessModifications -= OnPostprocessModifications;
+            Undo.undoRedoPerformed -= OnUndoRedoPerformed;
             SceneView.duringSceneGui -= OnSceneGui;
             EditorSceneManager.sceneSaved -= OnSceneSaved;
             EditorSceneManager.sceneDirtied -= OnSceneDirtied;
+            EditorSceneManager.activeSceneChangedInEditMode -= OnActiveSceneChanged;
             EditorSceneManager.sceneOpened -= OnSceneOpened;
             EditorSceneManager.sceneClosing -= OnSceneClosing;
             EditorSceneManager.newSceneCreated -= OnSceneCreated;
@@ -105,23 +160,32 @@ namespace Blizz606.UnityHackatime
         }
 
         private static void OnUpdate() { if (queued && !sending && EditorTime.Now >= nextAllowed) { bool save = queuedWrite; queued = queuedWrite = false; Request(save); } }
-        private static void OnPlayModeChanged(PlayModeStateChange _) { Request(false); }
-        private static void OnHierarchyChanged() { Request(false); }
-        private static void OnSelectionChanged() { Request(false); }
-        private static UndoPropertyModification[] OnPostprocessModifications(UndoPropertyModification[] modifications) { Request(false); return modifications; }
-        private static void OnSceneDirtied(Scene _) { Request(false); }
-        private static void OnSceneSaved(Scene _) { Request(true); }
-        private static void OnSceneOpened(Scene _, OpenSceneMode __) { Request(false); }
-        private static void OnSceneClosing(Scene _, bool __) { Request(false); }
-        private static void OnSceneCreated(Scene _, NewSceneSetup __, NewSceneMode ___) { Request(false); }
+        private static void OnPlayModeChanged(PlayModeStateChange _) { RecordActivity("Play mode changed"); }
+        private static void OnHierarchyChanged() { RecordActivity("Hierarchy changed"); }
+        private static void OnProjectChanged()
+        {
+            // Project imports can happen in the background. Only count one when
+            // the user has interacted with Unity recently.
+            if (lastDirectActionAt > 0 && EditorTime.Now - lastDirectActionAt <= 120)
+                RecordActivity("Project assets changed", false, false);
+        }
+        private static void OnSelectionChanged() { RecordActivity("Selection changed"); }
+        private static UndoPropertyModification[] OnPostprocessModifications(UndoPropertyModification[] modifications) { RecordActivity("Inspector or scene changed"); return modifications; }
+        private static void OnUndoRedoPerformed() { RecordActivity("Undo or redo"); }
+        private static void OnSceneDirtied(Scene _) { RecordActivity("Scene modified"); }
+        private static void OnSceneSaved(Scene _) { RecordActivity("Scene saved", true); }
+        private static void OnSceneOpened(Scene _, OpenSceneMode __) { RecordActivity("Scene opened"); }
+        private static void OnSceneClosing(Scene _, bool __) { RecordActivity("Scene closing"); }
+        private static void OnSceneCreated(Scene _, NewSceneSetup __, NewSceneMode ___) { RecordActivity("Scene created"); }
+        private static void OnActiveSceneChanged(Scene _, Scene __) { RecordActivity("Active scene changed"); }
 
 #if UNITY_6000_0_OR_NEWER
-        private static void OnHierarchyItemGui(EntityId _, Rect __) { if (IsUserInput(Event.current)) Request(false); }
+        private static void OnHierarchyItemGui(EntityId _, Rect __) { if (IsUserInput(Event.current)) RecordActivity("Hierarchy interaction"); }
 #else
-        private static void OnHierarchyItemGui(int _, Rect __) { if (IsUserInput(Event.current)) Request(false); }
+        private static void OnHierarchyItemGui(int _, Rect __) { if (IsUserInput(Event.current)) RecordActivity("Hierarchy interaction"); }
 #endif
-        private static void OnProjectItemGui(string _, Rect __) { if (IsUserInput(Event.current)) Request(false); }
-        private static void OnSceneGui(SceneView _) { if (IsUserInput(Event.current)) Request(false); }
+        private static void OnProjectItemGui(string _, Rect __) { if (IsUserInput(Event.current)) RecordActivity("Project window interaction"); }
+        private static void OnSceneGui(SceneView _) { if (IsUserInput(Event.current)) RecordActivity("Scene view interaction"); }
 
         private static bool IsUserInput(Event current)
         {

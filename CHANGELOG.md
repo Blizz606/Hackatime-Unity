@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.3] - 2026-11-20
+
+- Add a live tracking overview with connection, project, branch, current entity, action, queue, heartbeat, and error state.
+- Detect undo/redo, active-scene changes, recent project changes, and label every observed editor action.
+- Log unique connection failures to the Unity Console without logging API keys or request bodies.
+
 ## [1.0.2] - 2026-11-18
 
 - Track editor activity from selection, Inspector/Undo changes, Project window, Hierarchy, Scene view, and scene changes.

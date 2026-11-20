@@ -29,7 +29,7 @@ namespace Blizz606.UnityHackatime
             request.SetRequestHeader("Content-Type", "application/json");
             request.SetRequestHeader("Accept", "application/json");
             request.SetRequestHeader("Authorization", "Bearer " + key);
-            request.SetRequestHeader("User-Agent", "unity-hackatime/1.0.0 unity/" + Application.unityVersion);
+            request.SetRequestHeader("User-Agent", "unity-hackatime/1.0.3 unity/" + Application.unityVersion);
             UnityWebRequestAsyncOperation operation = request.SendWebRequest();
             operation.completed += _ =>
             {
